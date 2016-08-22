@@ -87,8 +87,18 @@
                             [1,1,4,4,4,4,1,1]],
                             start: {x: 6, y: 1}};
         
+        var level_4 = {map: [[0,2,0,3,0,0,0,0,2,0],
+                            [1,0,2,0,0,0,0,0,0,0],
+                            [0,0,0,2,2,0,0,2,0,0],
+                            [1,0,0,0,0,0,2,0,0,1],
+                            [0,0,0,0,0,0,0,0,0,0],
+                            [0,4,0,0,0,2,0,0,1,0],
+                            [1,0,0,2,0,0,0,1,0,0],
+                            [0,0,0,0,2,0,2,0,0,0]],
+                            start: {x: 2, y: 5}};
+        
         var resetLevelTo = {};
-        var levels = [level_1, level_2, level_3];
+        var levels = [level_1, level_2, level_3, level_4];
         var currentLevel = -1;
         
         function initLevel(levelID) {
