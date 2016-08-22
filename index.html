@@ -23,10 +23,19 @@
             y:                      0, 
             dx:                     0,
             dy:                     0,
+            levelScore:             0,
+            score:                  0,
             movesSinceStationary:   0,
             stop: function() { 
                 this.dx = 0;
                 this.dy = 0;
+            },
+            win: function() {
+                this.score += this.levelScore;
+                this.levelScore = 0;
+            },
+            lose: function() {
+                this.levelScore = 0;
             },
             setDirection: function(dir) {
                 this.dx = dir.x;
@@ -104,10 +113,12 @@
         function initLevel(levelID) {
             if (levelID != currentLevel) {
                 if (currentLevel != -1) {
+                    player.win();
                     levels[currentLevel].map = copyMap(resetLevelTo);
                 }
                 resetLevelTo = copyMap(levels[levelID].map);
             } else {
+                player.lose();
                 levels[levelID].map = copyMap(resetLevelTo);
             }
             
@@ -182,8 +193,9 @@
             }
         }
         
-        function breakTile(_x, _y) {
+        function breakTileAndAwardPoints(_x, _y) {
             setTile(_x, _y, 0);
+            player.levelScore++;
         }
         
         function objectAt(x, y, objectList, test=null) {
@@ -228,7 +240,7 @@
                     explosions.push({x: pos.x, y: pos.y, size: TILE});
 
                     if (isBreakable) {
-                        breakTile(pos.x, pos.y);
+                        breakTileAndAwardPoints(pos.x, pos.y);
                         break;
                     }
 
@@ -361,6 +373,10 @@
                 var explosion = explosions[e];
                 drawSquare(explosion.x, explosion.y, bombFlash?"#ffffff":"#ffff00", ctx, explosion.size);
             }
+                
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "30px Arial";
+            ctx.fillText("Score : "+(player.score+player.levelScore), 30, 50);
         }
         
         function onKeyDown(e) {
