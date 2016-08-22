@@ -7,6 +7,7 @@
     </body>
     <script>
         const TILE = 32;
+        const RUBBLE_LIFE = 1.25;
         
         var KEY = {
             SPACE:      32,
@@ -45,6 +46,7 @@
         
         var bombs = [];
         var explosions = [];
+        var rubble = [];
         var bombPower = 2;
         var bombFlash = false;
         
@@ -126,6 +128,7 @@
             
             bombs = [];
             explosions = [];
+            rubble = [];
             
             var playerStart = levels[levelID].start;
             player.x = playerStart.x;
@@ -193,8 +196,35 @@
             }
         }
         
+        function makeRubble(_x, _y, count) {
+            for (var i = 0; i < count; i++) {
+                var posX = _x*TILE + Math.random()*TILE;
+                var posY = _y*TILE + Math.random()*TILE;
+                var r = {x: posX, y: posY, dx: Math.random()*TILE*2 - TILE, dy: Math.random()*TILE*2 - TILE, t:0, size: 5, rotation: Math.random()*2*Math.PI};
+                rubble.push(r);
+            }
+        }
+        
+        function updateRubble() {
+            for (var r = rubble.length-1; r >= 0; r--) {
+                var _rubble = rubble[r];
+                if (_rubble.x < 0 || _rubble.x > canvas.width || _rubble.y < 0 || _rubble.y > canvas.height || _rubble.t >= RUBBLE_LIFE) {
+                    rubble.splice(r, 1);
+                    continue;
+                }
+                _rubble.x += _rubble.dx;
+                _rubble.y += _rubble.dy;
+                _rubble.rotation += Math.abs(_rubble.dx*_rubble.dy);
+                _rubble.dx *= 0.9;
+                _rubble.dy *= 0.9;
+                _rubble.dy++;
+                _rubble.t += dt;
+            }
+        }
+        
         function breakTileAndAwardPoints(_x, _y) {
             setTile(_x, _y, 0);
+            makeRubble(_x, _y, 20);
             player.levelScore++;
         }
         
@@ -290,6 +320,7 @@
             bombFlash = !bombFlash;
 
             updateExplosions();
+            updateRubble();
         }
         
         function placeBomb() {
@@ -372,6 +403,17 @@
             for (var e = 0; e < explosions.length; e++) {
                 var explosion = explosions[e];
                 drawSquare(explosion.x, explosion.y, bombFlash?"#ffffff":"#ffff00", ctx, explosion.size);
+            }
+            
+            for (var r = 0; r < rubble.length; r++) {
+                var _rubble = rubble[r];
+                ctx.fillStyle = "#ffcc00";
+                ctx.save();
+                ctx.translate(_rubble.x, _rubble.y);
+                ctx.rotate(-_rubble.rotation);
+                ctx.fillRect(- _rubble.size/2, - _rubble.size/2,
+                            _rubble.size, _rubble.size);
+                ctx.restore();
             }
                 
             ctx.fillStyle = "#ffffff";
