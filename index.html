@@ -8,6 +8,7 @@
     <script>
         const TILE = 32;
         const RUBBLE_LIFE = 1.25;
+        const MAX_SHAKE = 500.0;
         
         var KEY = {
             SPACE:      32,
@@ -49,6 +50,7 @@
         var rubble = [];
         var bombPower = 2;
         var bombFlash = false;
+        var loseShakeFactor = 1;
         
         var COLOUR = {
             WALL:       "#990000", 
@@ -148,6 +150,7 @@
 
         function loseLevel() {
             initLevel(currentLevel);
+            loseShakeFactor = MAX_SHAKE;
         }
 
         function initGame() { 
@@ -317,6 +320,10 @@
             player.x += player.dx;
             player.y += player.dy;
 
+            if (loseShakeFactor > 1) {
+                loseShakeFactor *= 0.95;
+            }
+            
             bombFlash = !bombFlash;
 
             updateExplosions();
@@ -363,7 +370,12 @@
         }
 
         function yWave(x) {
-            return 6.0*Math.sin(now/1000.0 + x*TILE);
+                var denominator = (1000.0 - loseShakeFactor);
+                return 6.0*Math.sin(now/denominator + x*TILE);
+        }
+        
+        function fadeStrength() {
+            return 0.05 + ((loseShakeFactor > 1)?0.45:0);
         }
         
         function drawSquare(x, y, colour, ctx, size=TILE) {
@@ -375,10 +387,18 @@
             ctx.lineTo((x+1)*TILE - offset, (y+1)*TILE + yWave(x+1) - offset);
             ctx.lineTo(x*TILE + offset, (y+1)*TILE + yWave(x) - offset);
             ctx.fill();
+            if (loseShakeFactor > 1) {
+                ctx.fillStyle = 'rgba(255, 0, 0, '+(loseShakeFactor/MAX_SHAKE)+')';
+                ctx.moveTo(x*TILE + offset, y*TILE + yWave(x) + offset);
+                ctx.lineTo((x+1)*TILE - offset, y*TILE + yWave(x+1) + offset);
+                ctx.lineTo((x+1)*TILE - offset, (y+1)*TILE + yWave(x+1) - offset);
+                ctx.lineTo(x*TILE + offset, (y+1)*TILE + yWave(x) - offset);
+                ctx.fill();
+            }
         }
         
         function drawGame(ctx) {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.fillStyle = 'rgba(0, 0, 0, '+fadeStrength()+')';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
             drawSquare(player.x, player.y, '#ffcc00', ctx);
