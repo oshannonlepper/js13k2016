@@ -15,7 +15,8 @@
             LEFT:       37,
             UP:         38,
             RIGHT:      39,
-            DOWN:       40
+            DOWN:       40,
+            R:          82
         };
         
         var canvas = document.getElementById('jindo-canvas');
@@ -463,6 +464,9 @@
                 case KEY.SPACE:
                     placeBomb();
                     handled = true;
+                    break;
+                case KEY.R:
+                    loseLevel();
                     break;
             }
             if (handled) {
