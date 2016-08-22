@@ -6,9 +6,27 @@
         <canvas id="jindo-canvas" width="640" height="480"></canvas>
     </body>
     <script>
+        const TILE = 32;
         
         var canvas = document.getElementById('jindo-canvas');
         var ctx = canvas.getContext('2d');
+        
+        var COLOUR = {
+            WALL:       "#990000", 
+            BREAKABLE:  "#454545", 
+            EXIT:       "#00ff00"
+        };
+
+        var COLOURS = [COLOUR.WALL, COLOUR.BREAKABLE, COLOUR.EXIT];
+        
+        var level_1 = {map: [[0,0,0,0,0,0,0,0],
+                          [0,0,0,0,0,3,0,0],
+                          [0,1,1,1,0,0,0,0],
+                          [0,1,0,1,0,0,0,0],
+                          [0,0,0,0,0,2,0,1],
+                          [0,1,0,0,0,0,1,1],
+                          [0,1,1,0,1,0,0,0],
+                          [0,0,0,0,0,0,0,0]]};
         
         function initGame() { 
             ctx.fillStyle = "#000000";
@@ -37,7 +55,20 @@
         function updateGame(dt) {
         }
 
+        function drawSquare(x, y, colour, ctx) {
+            ctx.fillStyle = colour;
+            ctx.fillRect(x*TILE, y*TILE, TILE, TILE);
+        }
+        
         function drawGame(ctx) {
+            var levelObject = level_1.map;
+            for (var y = 0; y < levelObject.length; y++) {
+                for (var x = 0; x < levelObject[y].length; x++) {
+                    if (levelObject[y][x] != 0) {
+                        drawSquare(x, y, COLOURS[levelObject[y][x]-1], ctx);
+                    }
+                }
+            }
         }
             
         window.requestAnimFrame = (function() {
