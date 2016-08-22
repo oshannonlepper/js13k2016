@@ -19,6 +19,15 @@
             R:          82
         };
         
+        const playableCanvasSize = 400;
+        
+        var levelViewTransform = {
+            tx: 0,
+            ty: 0,
+            sx: 1,
+            sy: 1
+        };
+        
         var canvas = document.getElementById('jindo-canvas');
         var ctx = canvas.getContext('2d');
         var player = {
@@ -79,17 +88,14 @@
                           [0,0,0,0,0,0,0,0]],
                            start: {x: 2, y: 5}};
         
-        var level_2 = {map: [[0,0,0,0,0,0,0,0,0,0],
-                            [0,0,0,0,0,0,0,0,0,0],
-                            [0,0,0,0,0,0,0,0,0,0],
-                            [0,0,0,0,1,0,1,0,0,0],
+        var level_2 = {map: [[0,0,0,0,1,0,1,0,0,0],
                             [0,0,0,1,0,0,0,1,0,0],
                             [0,0,2,0,0,0,0,0,0,0],
                             [0,1,0,2,0,2,0,1,0,0],
                             [0,0,0,0,1,3,1,0,0,0],
                             [0,1,0,0,0,2,2,0,0,0],
                             [0,0,2,0,0,0,0,0,0,0]],
-                            start: {x: 4, y: 4}};
+                            start: {x: 4, y: 2}};
         
         var level_3 = {map: [[1,1,1,1,1,1,1,1],
                             [1,0,0,1,0,0,0,1],
@@ -111,9 +117,52 @@
                             [0,0,0,0,2,0,2,0,0,0]],
                             start: {x: 2, y: 5}};
         
+        var level_5 = {map: [[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                            [0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0],
+                            [0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0],
+                            [0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0],
+                            [0,0,0,0,0,0,0,4,0,0,2,0,3,0,0,0,0,0,0],
+                            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                            [0,0,0,0,0,0,0,4,0,4,0,0,0,0,0,0,0,0,0],
+                            [0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0],
+                            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]],
+                            start: {x: 8, y: 11}}
+        
         var resetLevelTo = {};
-        var levels = [level_1, level_2, level_3, level_4];
+        var levels = [level_1, level_2, level_3, level_4, level_5];
         var currentLevel = -1;
+        
+        function updatePlayableCanvas() {
+            var levelObject = levels[currentLevel].map;
+            
+            var levelWidth = levelObject[0].length*TILE;
+            var levelHeight = levelObject.length*TILE;
+            console.log('level dimensions = '+levelWidth+'x'+levelHeight);
+            
+            var s = playableCanvasSize/levelWidth;
+            console.log("s = "+s);
+            
+            levelViewTransform.sx = s;
+            levelViewTransform.sy = s;
+            
+            console.log('level dimensions after = '+levelWidth*s+'x'+levelHeight*s);
+            
+            var transformedHeight = levelHeight*s;
+            levelViewTransform.tx = playableCanvasRect().x;
+            levelViewTransform.ty = playableCanvasRect().y + (playableCanvasSize-(levelHeight*s))/2;
+            
+            console.log(levelViewTransform);
+        }
         
         function initLevel(levelID) {
             if (levelID != currentLevel) {
@@ -128,6 +177,7 @@
             }
             
             currentLevel = levelID;
+            updatePlayableCanvas();
             
             bombs = [];
             explosions = [];
@@ -398,9 +448,56 @@
             }
         }
         
+        function playableCanvasRect() {
+            return {
+                x: (canvas.width - playableCanvasSize)/2,
+                y: (canvas.height - playableCanvasSize)/2,
+                w: playableCanvasSize,
+                h: playableCanvasSize
+            };
+        }
+        
+        function drawWaveyLine(ctx, from, to) {
+            var steps = levels[currentLevel].map[0].length;
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 5;
+            ctx.moveTo(from.x, from.y+ yWave(0));
+            ctx.beginPath();
+            for (var i = 0; i <= steps; i++) {
+                var u = i/steps;
+                var lerp = {x: from.x*u + to.x*(1-u),
+                           y: from.y*u + to.y*(1-u)};
+                ctx.lineTo(lerp.x, lerp.y + yWave(i));
+            }
+            ctx.stroke();
+        }
+        
+        function drawPlayableCanvas(ctx) {
+            var levelCanvas = playableCanvasRect();
+            drawWaveyLine(ctx, {x:levelCanvas.x,
+                           y:levelCanvas.y},
+                         {x:levelCanvas.x+levelCanvas.w,
+                          y:levelCanvas.y});
+            drawWaveyLine(ctx, {x:levelCanvas.x+levelCanvas.w,
+                           y:levelCanvas.y},
+                         {x:levelCanvas.x+levelCanvas.w,
+                          y:levelCanvas.y+levelCanvas.h});
+            drawWaveyLine(ctx, {x:levelCanvas.x+levelCanvas.w,
+                           y:levelCanvas.y+levelCanvas.h},
+                         {x:levelCanvas.x,
+                          y:levelCanvas.y+levelCanvas.h});
+            drawWaveyLine(ctx, {x:levelCanvas.x,
+                           y:levelCanvas.y+levelCanvas.h},
+                         {x:levelCanvas.x,
+                          y:levelCanvas.y});
+        }
+        
         function drawGame(ctx) {
             ctx.fillStyle = 'rgba(0, 0, 0, '+fadeStrength()+')';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.translate(levelViewTransform.tx, levelViewTransform.ty);
+            ctx.scale(levelViewTransform.sx, levelViewTransform.sy);
             
             drawSquare(player.x, player.y, '#ffcc00', ctx);
             
@@ -437,6 +534,11 @@
                 ctx.restore();
             }
                 
+            ctx.scale(1/levelViewTransform.sx, 1/levelViewTransform.sy);
+            ctx.translate(-levelViewTransform.tx, -levelViewTransform.ty);
+            
+            drawPlayableCanvas(ctx);
+            
             ctx.fillStyle = "#ffffff";
             ctx.font = "30px Arial";
             ctx.fillText("Score : "+(player.score+player.levelScore), 30, 50);
