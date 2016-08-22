@@ -64,9 +64,51 @@
                           [0,0,0,0,0,0,0,0]],
                            start: {x: 2, y: 5}};
         
-        function initLevel() {
-            player.x = level_1.start.x;
-            player.y = level_1.start.y;
+        var level_2 = {map: [[0,0,0,0,0,0,0,0,0,0],
+                            [0,0,0,0,0,0,0,0,0,0],
+                            [0,0,0,0,0,0,0,0,0,0],
+                            [0,0,0,0,1,0,1,0,0,0],
+                            [0,0,0,1,0,0,0,1,0,0],
+                            [0,0,2,0,0,0,0,0,0,0],
+                            [0,1,0,2,0,2,0,1,0,0],
+                            [0,0,0,0,1,3,1,0,0,0],
+                            [0,1,0,0,0,2,2,0,0,0],
+                            [0,0,2,0,0,0,0,0,0,0]],
+                            start: {x: 4, y: 4}};
+        
+        var resetLevelTo = {};
+        var levels = [level_1, level_2];
+        var currentLevel = -1;
+        
+        function initLevel(levelID) {
+            if (levelID != currentLevel) {
+                if (currentLevel != -1) {
+                    levels[currentLevel].map = copyMap(resetLevelTo);
+                }
+                resetLevelTo = copyMap(levels[levelID].map);
+            } else {
+                levels[levelID].map = copyMap(resetLevelTo);
+            }
+            
+            currentLevel = levelID;
+            
+            bombs = [];
+            explosions = [];
+            
+            var playerStart = levels[levelID].start;
+            player.x = playerStart.x;
+            player.y = playerStart.y;
+        }
+        
+        function copyMap(map) {
+            var buffer = [];
+            for (var y = 0; y < map.length; y++) {
+                buffer.push([]);
+                for (var x = 0; x < map[y].length; x++) {
+                    buffer[y].push(map[y][x]);
+                }
+            }
+            return buffer;
         }
         
         function initGame() { 
@@ -74,7 +116,7 @@
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.save();
 
-            initLevel();
+            initLevel(0);
             gameLoop();
         };
         
@@ -178,6 +220,15 @@
                 player.stop();
             }
             
+            if (goalTileAt(player.x+player.dx, player.y+player.dy)) {
+                player.stop();
+                var nextLevel = currentLevel+1;
+                if (nextLevel >= levels.length) {
+                    nextLevel = 0;
+                }
+                initLevel(nextLevel);
+            }
+            
             if (player.dx != 0 || player.dy != 0) {
                 player.movesSinceStationary++;
             } else {
@@ -209,9 +260,13 @@
         function breakableTileAt(x, y) {
             return tileAt(x, y) == 2;
         }
+
+        function goalTileAt(x, y) {
+            return tileAt(x, y) == 3;
+        }
         
         function tileAt(x, y, tile) {
-            var levelObject = level_1.map;
+            var levelObject = levels[currentLevel].map;
             if (y < 0 || y >= levelObject.length || x < 0 || x >= levelObject[y].length) {
                 return 1;
             }
@@ -219,7 +274,7 @@
         }
         
         function setTile(x, y, tile) {
-            var levelObject = level_1.map;
+            var levelObject = levels[currentLevel].map;
             if (y < 0 || y >= levelObject.length || x < 0 || x >= levelObject[y].length) {
                 return;
             }
@@ -239,7 +294,7 @@
             
             drawSquare(player.x, player.y, '#ffcc00', ctx);
             
-            var levelObject = level_1.map;
+            var levelObject = levels[currentLevel].map;
             for (var y = 0; y < levelObject.length; y++) {
                 for (var x = 0; x < levelObject[y].length; x++) {
                     if (levelObject[y][x] != 0) {
