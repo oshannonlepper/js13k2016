@@ -1,0 +1,53 @@
+<html>
+    <head>
+        <title>JS13kb 2016 - Jindo</title>
+    </head>
+    <body onload="initGame()">
+        <canvas id="jindo-canvas" width="640" height="480"></canvas>
+    </body>
+    <script>
+        
+        var canvas = document.getElementById('jindo-canvas');
+        var ctx = canvas.getContext('2d');
+        
+        function initGame() { 
+            ctx.fillStyle = "#000000";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+
+            gameLoop();
+        };
+        
+        function timestamp() {
+            return window.performance && window.performance.now ? window.performance.now() : new Date().getTime();
+        }
+        
+        var now, dt,
+            last = timestamp();
+        
+        function gameLoop() {
+            now =   timestamp();
+            dt  =   (now - last) / 1000;
+            updateGame(dt);
+            drawGame(ctx);
+            last = now;
+            requestAnimFrame(gameLoop);
+        }
+        
+        function updateGame(dt) {
+        }
+
+        function drawGame(ctx) {
+        }
+            
+        window.requestAnimFrame = (function() {
+            return  window.requestAnimationFrame       ||
+                    window.webkitRequestAnimationFrame ||
+                    window.mozRequestAnimationFrame    ||
+                    function( callback ) {
+                        window.setTimeout(callback, 1000 / 60);
+                    };
+            })();
+        
+    </script>
+</html>
