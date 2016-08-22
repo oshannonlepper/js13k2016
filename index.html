@@ -42,10 +42,11 @@
         var COLOUR = {
             WALL:       "#990000", 
             BREAKABLE:  "#454545", 
-            EXIT:       "#00ff00"
+            EXIT:       "#00ff00",
+            LETHAL:     "#ff0000"
         };
 
-        var COLOURS = [COLOUR.WALL, COLOUR.BREAKABLE, COLOUR.EXIT];
+        var COLOURS = [COLOUR.WALL, COLOUR.BREAKABLE, COLOUR.EXIT, COLOUR.LETHAL];
          
         var DIRECTION = {
             UP:         {x: 0,  y:-1}, 
@@ -76,8 +77,18 @@
                             [0,0,2,0,0,0,0,0,0,0]],
                             start: {x: 4, y: 4}};
         
+        var level_3 = {map: [[1,1,1,1,1,1,1,1],
+                            [1,0,0,1,0,0,0,1],
+                            [1,0,0,0,0,0,0,1],
+                            [1,0,0,2,0,0,0,1],
+                            [4,2,0,0,0,0,0,1],
+                            [1,0,1,0,0,0,0,1],
+                            [3,0,0,0,0,0,2,1],
+                            [1,1,4,4,4,4,1,1]],
+                            start: {x: 6, y: 1}};
+        
         var resetLevelTo = {};
-        var levels = [level_1, level_2];
+        var levels = [level_1, level_2, level_3];
         var currentLevel = -1;
         
         function initLevel(levelID) {
@@ -110,7 +121,11 @@
             }
             return buffer;
         }
-        
+
+        function loseLevel() {
+            initLevel(currentLevel);
+        }
+
         function initGame() { 
             ctx.fillStyle = "#000000";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -176,6 +191,10 @@
         function bombAt(x, y) {
             return objectAt(x, y, bombs);
         }
+
+        function explosionAt(x, y) {
+            return objectAt(x, y, explosions, function(object) { return object.size >= TILE*0.75; });
+        }
         
         function doExplodeAt(_x, _y, power) {
             explosions.push({x: _x, y: _y, size: TILE});
@@ -228,7 +247,12 @@
                 }
                 initLevel(nextLevel);
             }
-            
+
+            if (lethalTileAt(player.x+player.dx, player.y+player.dy)) {
+                player.stop();
+                loseLevel();
+            }
+
             if (player.dx != 0 || player.dy != 0) {
                 player.movesSinceStationary++;
             } else {
@@ -265,10 +289,14 @@
             return tileAt(x, y) == 3;
         }
         
+        function lethalTileAt(x, y) {
+            return (tileAt(x, y) == 4) || explosionAt(x, y) != -1;
+        }
+
         function tileAt(x, y, tile) {
             var levelObject = levels[currentLevel].map;
             if (y < 0 || y >= levelObject.length || x < 0 || x >= levelObject[y].length) {
-                return 1;
+                return 4;
             }
             return levelObject[y][x];
         }
