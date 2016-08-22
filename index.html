@@ -9,6 +9,7 @@
         const TILE = 32;
         
         var KEY = {
+            SPACE:      32,
             LEFT:       37,
             UP:         38,
             RIGHT:      39,
@@ -18,10 +19,11 @@
         var canvas = document.getElementById('jindo-canvas');
         var ctx = canvas.getContext('2d');
         var player = {
-            x:  0, 
-            y:  0, 
-            dx: 0,
-            dy: 0,
+            x:                      0, 
+            y:                      0, 
+            dx:                     0,
+            dy:                     0,
+            movesSinceStationary:   0,
             stop: function() { 
                 this.dx = 0;
                 this.dy = 0;
@@ -31,6 +33,11 @@
                 this.dy = dir.y;
             }
         };
+        
+        var bombs = [];
+        var explosions = [];
+        var bombPower = 2;
+        var bombFlash = false;
         
         var COLOUR = {
             WALL:       "#990000", 
@@ -87,18 +94,120 @@
             requestAnimFrame(gameLoop);
         }
         
+        function updateBombTicks() {
+            for (var b = bombs.length-1; b >= 0; b--) {
+                var bomb = bombs[b];
+                bomb.ticks--;
+                if (bomb.ticks <= 0) {
+                    bombs.splice(b, 1);
+                    doExplodeAt(bomb.x, bomb.y, bomb.power);
+                }
+            }
+        }
+        
+        function updateExplosions() {
+            for (var i = explosions.length-1; i >= 0; i--) {
+                var explosion = explosions[i];
+                explosion.size--;
+                if (explosion.size <= 0) {
+                    explosions.splice(i, 1);
+                }
+            }
+        }
+        
+        function breakTile(_x, _y) {
+            setTile(_x, _y, 0);
+        }
+        
+        function objectAt(x, y, objectList, test=null) {
+            for (var i = 0; i < objectList.length; i++) {
+                var object = objectList[i];
+                if (object.x == x && object.y == y) {
+                    if (test == null || (test != null && test(object))) {
+                        return i;
+                    }
+                }
+            }
+            return -1;
+        }
+        
+        function bombAt(x, y) {
+            return objectAt(x, y, bombs);
+        }
+        
+        function doExplodeAt(_x, _y, power) {
+            explosions.push({x: _x, y: _y, size: TILE});
+            for (var dir in DIRECTION) {
+
+                var direction = DIRECTION[dir];
+                var currentPower = 0;
+
+                while (currentPower <= power) {
+
+                    var pos = {x: _x + direction.x*currentPower, y: _y + direction.y*currentPower};
+
+                    var isBreakable = breakableTileAt(pos.x, pos.y);
+                    var isSolid = solidTileAt(pos.x, pos.y);
+
+                    if (isSolid && isBreakable == false) {
+                        currentPower = 0;
+                        break;
+                    }
+
+                    explosions.push({x: pos.x, y: pos.y, size: TILE});
+
+                    if (isBreakable) {
+                        breakTile(pos.x, pos.y);
+                        break;
+                    }
+
+                    var bombID = bombAt(pos.x, pos.y);
+                    if (bombID != -1) {
+                        var bombPower = bombs[bombID].power;
+                        bombs.splice(bombID, 1);
+                        doExplodeAt(pos.x, pos.y, bombPower);
+                    }
+
+                    currentPower++;
+                }
+            }
+        }
+        
         function updateGame(dt) {
             if (solidTileAt(player.x+player.dx, player.y+player.dy)) {
                 player.stop();
             }
             
+            if (player.dx != 0 || player.dy != 0) {
+                player.movesSinceStationary++;
+            } else {
+                if (player.movesSinceStationary > 0) {
+                    updateBombTicks();
+                    player.movesSinceStationary = 0;   
+                }
+            }
+            
             player.x += player.dx;
             player.y += player.dy;
+
+            bombFlash = !bombFlash;
+
+            updateExplosions();
+        }
+        
+        function placeBomb() {
+            if (player.dx == 0 && player.dy == 0) {
+                bombs.push({x: player.x, y: player.y, ticks: 3, power: bombPower});
+            }
         }
         
         function solidTileAt(x, y) {
             var tileValue = tileAt(x,y);
             return tileValue == 1 || tileValue == 2;
+        }
+        
+        function breakableTileAt(x, y) {
+            return tileAt(x, y) == 2;
         }
         
         function tileAt(x, y, tile) {
@@ -108,10 +217,20 @@
             }
             return levelObject[y][x];
         }
+        
+        function setTile(x, y, tile) {
+            var levelObject = level_1.map;
+            if (y < 0 || y >= levelObject.length || x < 0 || x >= levelObject[y].length) {
+                return;
+            }
+            levelObject[y][x] = tile;
+        }
 
-        function drawSquare(x, y, colour, ctx) {
+        function drawSquare(x, y, colour, ctx, size=TILE) {
             ctx.fillStyle = colour;
-            ctx.fillRect(x*TILE, y*TILE, TILE, TILE);
+            
+            var offset = (TILE - size)/2;
+            ctx.fillRect(x*TILE + offset, y*TILE + offset, size, size);
         }
         
         function drawGame(ctx) {
@@ -127,6 +246,19 @@
                         drawSquare(x, y, COLOURS[levelObject[y][x]-1], ctx);
                     }
                 }
+            }
+            
+            for (var b = 0; b < bombs.length; b++) {
+                var bomb = bombs[b];
+                drawSquare(bomb.x, bomb.y, bombFlash?"#ffffff":"#ff3300", ctx);
+                ctx.fillStyle = "#000000";
+                ctx.font = "30px Verdana";
+                ctx.fillText(bomb.ticks, bomb.x*TILE, (bomb.y+1)*TILE);
+            }
+            
+            for (var e = 0; e < explosions.length; e++) {
+                var explosion = explosions[e];
+                drawSquare(explosion.x, explosion.y, bombFlash?"#ffffff":"#ffff00", ctx, explosion.size);
             }
         }
         
@@ -147,6 +279,10 @@
                     break;
                 case KEY.LEFT:
                     player.setDirection(DIRECTION.LEFT);
+                    handled = true;
+                    break;
+                case KEY.SPACE:
+                    placeBomb();
                     handled = true;
                     break;
             }
