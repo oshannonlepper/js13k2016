@@ -8,8 +8,29 @@
     <script>
         const TILE = 32;
         
+        var KEY = {
+            LEFT:       37,
+            UP:         38,
+            RIGHT:      39,
+            DOWN:       40
+        };
+        
         var canvas = document.getElementById('jindo-canvas');
         var ctx = canvas.getContext('2d');
+        var player = {
+            x:  0, 
+            y:  0, 
+            dx: 0,
+            dy: 0,
+            stop: function() { 
+                this.dx = 0;
+                this.dy = 0;
+            },
+            setDirection: function(dir) {
+                this.dx = dir.x;
+                this.dy = dir.y;
+            }
+        };
         
         var COLOUR = {
             WALL:       "#990000", 
@@ -18,7 +39,14 @@
         };
 
         var COLOURS = [COLOUR.WALL, COLOUR.BREAKABLE, COLOUR.EXIT];
-        
+         
+        var DIRECTION = {
+            UP:         {x: 0,  y:-1}, 
+            RIGHT:      {x: 1,  y: 0}, 
+            DOWN:       {x: 0,  y: 1}, 
+            LEFT:       {x:-1,  y: 0}
+        };
+
         var level_1 = {map: [[0,0,0,0,0,0,0,0],
                           [0,0,0,0,0,3,0,0],
                           [0,1,1,1,0,0,0,0],
@@ -26,13 +54,20 @@
                           [0,0,0,0,0,2,0,1],
                           [0,1,0,0,0,0,1,1],
                           [0,1,1,0,1,0,0,0],
-                          [0,0,0,0,0,0,0,0]]};
+                          [0,0,0,0,0,0,0,0]],
+                           start: {x: 2, y: 5}};
+        
+        function initLevel() {
+            player.x = level_1.start.x;
+            player.y = level_1.start.y;
+        }
         
         function initGame() { 
             ctx.fillStyle = "#000000";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.save();
 
+            initLevel();
             gameLoop();
         };
         
@@ -53,6 +88,25 @@
         }
         
         function updateGame(dt) {
+            if (solidTileAt(player.x+player.dx, player.y+player.dy)) {
+                player.stop();
+            }
+            
+            player.x += player.dx;
+            player.y += player.dy;
+        }
+        
+        function solidTileAt(x, y) {
+            var tileValue = tileAt(x,y);
+            return tileValue == 1 || tileValue == 2;
+        }
+        
+        function tileAt(x, y, tile) {
+            var levelObject = level_1.map;
+            if (y < 0 || y >= levelObject.length || x < 0 || x >= levelObject[y].length) {
+                return 1;
+            }
+            return levelObject[y][x];
         }
 
         function drawSquare(x, y, colour, ctx) {
@@ -61,6 +115,11 @@
         }
         
         function drawGame(ctx) {
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            drawSquare(player.x, player.y, '#ffcc00', ctx);
+            
             var levelObject = level_1.map;
             for (var y = 0; y < levelObject.length; y++) {
                 for (var x = 0; x < levelObject[y].length; x++) {
@@ -70,6 +129,33 @@
                 }
             }
         }
+        
+        function onKeyDown(e) {
+            var handled = false;
+            switch (e.keyCode) {
+                case KEY.DOWN:
+                    player.setDirection(DIRECTION.DOWN);
+                    handled = true;
+                    break;
+                case KEY.RIGHT:
+                    player.setDirection(DIRECTION.RIGHT);
+                    handled = true;
+                    break;
+                case KEY.UP:
+                    player.setDirection(DIRECTION.UP);
+                    handled = true;
+                    break;
+                case KEY.LEFT:
+                    player.setDirection(DIRECTION.LEFT);
+                    handled = true;
+                    break;
+            }
+            if (handled) {
+                e.preventDefault();
+            }
+        }
+        
+        window.addEventListener('keydown', onKeyDown, false);
             
         window.requestAnimFrame = (function() {
             return  window.requestAnimationFrame       ||
