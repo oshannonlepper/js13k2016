@@ -139,7 +139,7 @@
         function initGame() { 
             ctx.fillStyle = "#000000";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.save();
+            //ctx.save();
 
             initLevel(0);
             gameLoop();
@@ -319,15 +319,23 @@
             levelObject[y][x] = tile;
         }
 
+        function yWave(x) {
+            return 6.0*Math.sin(now/1000.0 + x*TILE);
+        }
+        
         function drawSquare(x, y, colour, ctx, size=TILE) {
             ctx.fillStyle = colour;
-            
+            ctx.beginPath();
             var offset = (TILE - size)/2;
-            ctx.fillRect(x*TILE + offset, y*TILE + offset, size, size);
+            ctx.moveTo(x*TILE + offset, y*TILE + yWave(x) + offset);
+            ctx.lineTo((x+1)*TILE - offset, y*TILE + yWave(x+1) + offset);
+            ctx.lineTo((x+1)*TILE - offset, (y+1)*TILE + yWave(x+1) - offset);
+            ctx.lineTo(x*TILE + offset, (y+1)*TILE + yWave(x) - offset);
+            ctx.fill();
         }
         
         function drawGame(ctx) {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
             drawSquare(player.x, player.y, '#ffcc00', ctx);
@@ -346,7 +354,7 @@
                 drawSquare(bomb.x, bomb.y, bombFlash?"#ffffff":"#ff3300", ctx);
                 ctx.fillStyle = "#000000";
                 ctx.font = "30px Verdana";
-                ctx.fillText(bomb.ticks, bomb.x*TILE, (bomb.y+1)*TILE);
+                ctx.fillText(bomb.ticks, bomb.x*TILE, (bomb.y+1)*TILE + yWave(bomb.x));
             }
             
             for (var e = 0; e < explosions.length; e++) {
