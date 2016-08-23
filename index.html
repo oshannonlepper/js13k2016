@@ -3,12 +3,15 @@
         <title>JS13kb 2016 - Jindo</title>
     </head>
     <body onload="initGame()">
-        <canvas id="jindo-canvas" width="640" height="480"></canvas>
+        <canvas id="jindo-canvas" width="800" height="600"></canvas>
     </body>
     <script>
         const TILE = 32;
         const RUBBLE_LIFE = 1.25;
         const MAX_SHAKE = 500.0;
+        
+        var waveyEffectEnabled = true;
+        var fadeEffectEnabled = true;
         
         var KEY = {
             SPACE:      32,
@@ -141,6 +144,60 @@
         var resetLevelTo = {};
         var levels = [level_1, level_2, level_3, level_4, level_5];
         var currentLevel = -1;
+        
+        function Checkbox (_x, _y, _label, _callback=null, _enabled=true) {
+            var t = this;
+            t.checkbox_size = 20;
+            t.x = _x;
+            t.y = _y;
+            t.label = _label;
+            t.enabled = _enabled;
+            t.draw = function(ctx) {
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = '#ffffff';
+                ctx.fillStyle = '#000000';
+                //console.log(t.x+', '+t.y+', '+t.checkbox_size);
+                ctx.fillRect(t.x - t.checkbox_size/2, t.y - t.checkbox_size/2, t.checkbox_size, t.checkbox_size);
+                ctx.strokeRect(t.x - t.checkbox_size/2, t.y - t.checkbox_size/2, t.checkbox_size, t.checkbox_size);
+                if (t.enabled) {
+                    ctx.beginPath();
+                    ctx.moveTo(t.x - t.checkbox_size/2, t.y + t.checkbox_size/2);
+                    ctx.lineTo(t.x + t.checkbox_size/2, t.y - t.checkbox_size/2);
+                    ctx.stroke();
+                }
+                ctx.font = "16px Verdana";
+                ctx.fillStyle = '#ffffff';
+                ctx.fillText(t.label, t.x + t.checkbox_size, t.y);
+            }
+            t.checkForToggle = function(e) {
+                console.log('checking for a click');
+                var mousePos = getMousePos(e);
+                if (mousePos.x > t.x - t.checkbox_size/2 && mousePos.y > t.y - t.checkbox_size/2 &&
+                   mousePos.x < t.x + t.checkbox_size/2 && mousePos.y < t.y + t.checkbox_size/2) {
+                    t.enabled = !t.enabled;
+                    console.log('a thing happened');
+                    if (_callback != null) {
+                        _callback(t.enabled);
+                    }
+                }
+            }
+        }
+        
+        function getMousePos(e) {
+            var rect = canvas.getBoundingClientRect();
+            return {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+            };
+        }
+        
+        var checkboxToggleWaveyEffect = new Checkbox(700, 500, "Waves", function(bool) { waveyEffectEnabled = bool; });
+        var checkboxToggleFadeEffect = new Checkbox(700, 530, "Fades", function(bool) { fadeEffectEnabled = bool; });
+        
+        function checkForToggleClick(e) {
+            checkboxToggleFadeEffect.checkForToggle(e);
+            checkboxToggleWaveyEffect.checkForToggle(e);
+        }
         
         function updatePlayableCanvas() {
             var levelObject = levels[currentLevel].map;
@@ -421,8 +478,11 @@
         }
 
         function yWave(x) {
-                var denominator = (1000.0 - loseShakeFactor);
-                return 6.0*Math.sin(now/denominator + x*TILE);
+            if (waveyEffectEnabled == false) {
+                return 0;
+            }
+            var denominator = (1000.0 - loseShakeFactor);
+            return 6.0*Math.sin(now/denominator + x*TILE);
         }
         
         function fadeStrength() {
@@ -474,9 +534,9 @@
         
         function drawPlayableCanvas(ctx) {
             var levelCanvas = playableCanvasRect();
-            drawWaveyLine(ctx, {x:levelCanvas.x,
+            drawWaveyLine(ctx, {x:levelCanvas.x+levelCanvas.w,
                            y:levelCanvas.y},
-                         {x:levelCanvas.x+levelCanvas.w,
+                         {x:levelCanvas.x,
                           y:levelCanvas.y});
             drawWaveyLine(ctx, {x:levelCanvas.x+levelCanvas.w,
                            y:levelCanvas.y},
@@ -493,8 +553,15 @@
         }
         
         function drawGame(ctx) {
-            ctx.fillStyle = 'rgba(0, 0, 0, '+fadeStrength()+')';
+            if (fadeEffectEnabled) {
+                ctx.fillStyle = 'rgba(0, 0, 0, '+fadeStrength()+')';
+            } else {
+                ctx.fillStyle = '#000000';
+            }
             ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            checkboxToggleWaveyEffect.draw(ctx);
+            checkboxToggleFadeEffect.draw(ctx);
             
             ctx.translate(levelViewTransform.tx, levelViewTransform.ty);
             ctx.scale(levelViewTransform.sx, levelViewTransform.sy);
@@ -577,6 +644,7 @@
         }
         
         window.addEventListener('keydown', onKeyDown, false);
+        canvas.addEventListener('mousedown', checkForToggleClick, false);
             
         window.requestAnimFrame = (function() {
             return  window.requestAnimationFrame       ||
