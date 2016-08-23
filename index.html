@@ -53,8 +53,10 @@
                 this.levelScore = 0;
             },
             setDirection: function(dir) {
-                this.dx = dir.x;
-                this.dy = dir.y;
+                if (this.dx == 0 && this.dy == 0) {
+                    this.dx = dir.x;
+                    this.dy = dir.y;
+                }
             }
         };
         
