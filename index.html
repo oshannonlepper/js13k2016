@@ -324,7 +324,7 @@
             for (var i = 0; i < count; i++) {
                 var posX = _x*TILE + Math.random()*TILE;
                 var posY = _y*TILE + Math.random()*TILE;
-                var r = {x: posX, y: posY, dx: Math.random()*TILE*2 - TILE, dy: Math.random()*TILE*2 - TILE, t:0, size: 5, rotation: Math.random()*2*Math.PI};
+                var r = {x: posX, y: posY, dx: Math.random()*16-8, dy: Math.random()*10-5, t:0, size: 5, rotation: Math.random()*2*Math.PI};
                 rubble.push(r);
             }
         }
@@ -339,9 +339,8 @@
                 _rubble.x += _rubble.dx;
                 _rubble.y += _rubble.dy;
                 _rubble.rotation += Math.abs(_rubble.dx*_rubble.dy);
-                _rubble.dx *= 0.9;
-                _rubble.dy *= 0.9;
-                _rubble.dy++;
+                _rubble.dx *= 0.99;
+                _rubble.dy+=0.4;
                 _rubble.t += dt;
             }
         }
