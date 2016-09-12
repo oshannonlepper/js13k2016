@@ -196,18 +196,19 @@
             var levelWidth = levelObject[0].length*TILE;
             var levelHeight = levelObject.length*TILE;
             console.log('level dimensions = '+levelWidth+'x'+levelHeight);
+            var maxDimension = Math.max(levelWidth, levelHeight);
             
-            var s = playableCanvasSize/levelWidth;
-            console.log("s = "+s);
+            var scale = playableCanvasSize/maxDimension;
+            console.log("scale = "+scale);
             
-            levelViewTransform.sx = s;
-            levelViewTransform.sy = s;
+            levelViewTransform.sx = scale;
+            levelViewTransform.sy = scale;
             
-            console.log('level dimensions after = '+levelWidth*s+'x'+levelHeight*s);
+            console.log('level dimensions after = '+levelWidth*scale+'x'+levelHeight*scale);
             
-            var transformedHeight = levelHeight*s;
+            var transformedHeight = levelHeight*scale;
             levelViewTransform.tx = playableCanvasRect().x;
-            levelViewTransform.ty = playableCanvasRect().y + (playableCanvasSize-(levelHeight*s))/2;
+            levelViewTransform.ty = playableCanvasRect().y + (playableCanvasSize-(levelHeight*scale))/2;
             
             console.log(levelViewTransform);
         }
