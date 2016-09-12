@@ -68,10 +68,13 @@
         var loseShakeFactor = 1;
         
         var COLOUR = {
-            WALL:       "#990000", 
-            BREAKABLE:  "#454545", 
-            EXIT:       "#00ff00",
-            LETHAL:     "#ff0000"
+            WALL:               "#990000",
+            WALL_BACK:          '#450000',
+            BREAKABLE_BORDER:   "#454545",
+            BREAKABLE:          '#676767',
+            EXIT:               "#00ff00",
+            LETHAL:             "#ff0000",
+            LETHAL_FADEOUT:     'rgba(255, 255, 0, 0)'
         };
 
         var COLOURS = [COLOUR.WALL, COLOUR.BREAKABLE, COLOUR.EXIT, COLOUR.LETHAL];
@@ -132,9 +135,13 @@
                             [0,1,0,0,0,0,0]],
                             start: {x: 1, y: 6}};
         
+        var getLevelWidth = function() { return levels[currentLevel].map[0].length; };
+        var getLevelHeight = function() { return levels[currentLevel].map.length; };
+        
         var resetLevelTo = {};
         var levels = [level_1, level_2, level_3, level_4, level_5];
         var currentLevel = -1;
+        var levelWalls = [];
         
         function Checkbox (_x, _y, _label, _callback=null, _enabled=true) {
             var t = this;
@@ -213,6 +220,19 @@
             console.log(levelViewTransform);
         }
         
+        function setLevelWalls() {
+            levelWalls = [];
+            var map = levels[currentLevel].map;
+            
+            for (var y = 0; y < map.length; y++) {
+                for (var x = 0; x < map[y].length; x++) {
+                    if (map[y][x] == 1) {
+                        levelWalls.push({x: x, y: y});
+                    }
+                }
+            }
+        }
+        
         function initLevel(levelID) {
             if (levelID != currentLevel) {
                 if (currentLevel != -1) {
@@ -226,6 +246,7 @@
             }
             
             currentLevel = levelID;
+            setLevelWalls();
             updatePlayableCanvas();
             
             bombs = [];
@@ -478,26 +499,116 @@
         }
         
         function fadeStrength() {
-            return 0.05 + ((loseShakeFactor > 1)?0.45:0);
+            return 0.05 + (wasJustHurt()?0.45:0);
         }
         
-        function drawSquare(x, y, colour, ctx, size=TILE) {
-            ctx.fillStyle = colour;
+        function drawSquare(x, y, colour, ctx, size=TILE, _offset={x:0, y:0}) {
+            var fillColour = colour;
+            
+            if (typeof colour == 'array') {
+                var gradient = ctx.createLinearGradient((x+0.5)*TILE, (y+0.5)*TILE, 5, x*TILE, y*TILE, size);
+                gradient.addColorStop(0, colour[0]);
+                gradient.addColorStop(1, colour[1]);
+                fillColour = gradient;
+            }
+            
+            ctx.fillStyle = fillColour;
             ctx.beginPath();
-            var offset = (TILE - size)/2;
-            ctx.moveTo(x*TILE + offset, y*TILE + yWave(x) + offset);
-            ctx.lineTo((x+1)*TILE - offset, y*TILE + yWave(x+1) + offset);
-            ctx.lineTo((x+1)*TILE - offset, (y+1)*TILE + yWave(x+1) - offset);
-            ctx.lineTo(x*TILE + offset, (y+1)*TILE + yWave(x) - offset);
+            var offset = {x: _offset.x + (TILE - size)/2, y: _offset.y + (TILE - size)/2};
+            ctx.moveTo(x*TILE + offset.x, y*TILE + yWave(x) + offset.y);
+            ctx.lineTo((x+1)*TILE - offset.x, y*TILE + yWave(x+1) + offset.y);
+            ctx.lineTo((x+1)*TILE - offset.x, (y+1)*TILE + yWave(x+1) - offset.y);
+            ctx.lineTo(x*TILE + offset.x, (y+1)*TILE + yWave(x) - offset.y);
             ctx.fill();
             if (loseShakeFactor > 1) {
                 ctx.fillStyle = 'rgba(255, 0, 0, '+(loseShakeFactor/MAX_SHAKE)+')';
-                ctx.moveTo(x*TILE + offset, y*TILE + yWave(x) + offset);
-                ctx.lineTo((x+1)*TILE - offset, y*TILE + yWave(x+1) + offset);
-                ctx.lineTo((x+1)*TILE - offset, (y+1)*TILE + yWave(x+1) - offset);
-                ctx.lineTo(x*TILE + offset, (y+1)*TILE + yWave(x) - offset);
+                ctx.moveTo(x*TILE + offset.x, y*TILE + yWave(x) + offset.y);
+                ctx.lineTo((x+1)*TILE - offset.x, y*TILE + yWave(x+1) + offset.y);
+                ctx.lineTo((x+1)*TILE - offset.x, (y+1)*TILE + yWave(x+1) - offset.y);
+                ctx.lineTo(x*TILE + offset.x, (y+1)*TILE + yWave(x) - offset.y);
                 ctx.fill();
             }
+        }
+        
+        function drawFace(x, y, colour, ctx, size=TILE, force_sad=false) {
+            var leftEyePos = {x: (x+0.3)*size, y: (y+0.3)*size};
+            var rightEyePos = {x: (x+0.7)*size, y: (y+0.3)*size};
+            var mouth = {x: (x+0.5)*size, y:(y+0.5)*size};
+            
+            ctx.fillStyle = colour;
+            ctx.beginPath();
+            ctx.arc(leftEyePos.x, leftEyePos.y+yWave(x), 0.1*size, 0, 2*Math.PI);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(rightEyePos.x, rightEyePos.y+yWave(x), 0.1*size, 0, 2*Math.PI);
+            ctx.fill();
+            ctx.beginPath();
+            var sad = force_sad || wasJustHurt();
+            ctx.arc(mouth.x,
+                    sad?(mouth.y+yWave(x)+size*0.3):(mouth.y+yWave(x)),
+                    0.4*size, 
+                    sad?Math.PI:0, 
+                    sad?(2*Math.PI):Math.PI);
+            ctx.fill();
+        }
+        
+        function DistanceFromLevelCenter(_x, _y) {
+            var center = {x: getLevelWidth()/2, y: getLevelHeight()/2 };
+            return {x: Math.abs(_x-center.x), y: Math.abs(center.y-_y)};
+        }
+        
+        function drawBackWalls(walls) {
+            for (i = 0; i < walls.length; i++) {
+                drawBackWall(walls[i].x, walls[i].y, ctx);
+            }
+        }
+        
+        function drawWalls(walls) {
+            for (i = 0; i < walls.length; i++) {
+                drawWall(walls[i].x, walls[i].y, ctx);
+            }
+        }
+        
+        var drawPlayer = function(x, y, ctx) {
+            drawSquare(player.x, player.y, '#ffcc00', ctx);
+            drawFace(player.x, player.y, '#000000', ctx);
+        }
+        
+        var drawBackWall = function(x, y, ctx) {
+            drawSquare(x, y, COLOUR.WALL_BACK, ctx);
+        }
+        
+        var drawWall = function(x, y, ctx) {
+            var offset = DistanceFromLevelCenter(x, y);
+            drawSquare(x, y, COLOUR.WALL, ctx, TILE, offset);
+        }
+        
+        var drawHazard = function(x, y, ctx) {
+            //drawSquare(x, y, COLOUR.LETHAL, ctx);
+            ctx.fillStyle = '#ff6600';
+            for (var i = 0; i < 10; i++) {
+                ctx.beginPath();
+                ctx.arc((x+Math.random())*TILE, (y+Math.random())*TILE, 1, 0, 2*Math.PI);
+                ctx.fill();
+            }
+            drawFace(x, y, '#ff6600', ctx, TILE, true);
+        }
+        
+        var drawBreakableBlock = function(x, y, ctx) {
+            drawSquare(x, y, COLOUR.BREAKABLE_BORDER, ctx);
+            drawSquare(x, y, COLOUR.BREAKABLE, ctx, TILE-10);
+        }
+        
+        var drawExit = function(x, y, ctx) {
+            drawSquare(x, y, COLOUR.EXIT, ctx);
+            drawSquare(x, y, '#000000', ctx, TILE-10);
+            drawSquare(x, y, COLOUR.EXIT, ctx, TILE-20);
+        }
+        
+        var tileDraw = [null, drawWall, drawBreakableBlock, drawExit, drawHazard];
+        
+        function wasJustHurt() {
+            return loseShakeFactor > 50;
         }
         
         function playableCanvasRect() {
@@ -558,16 +669,19 @@
             ctx.translate(levelViewTransform.tx, levelViewTransform.ty);
             ctx.scale(levelViewTransform.sx, levelViewTransform.sy);
             
-            drawSquare(player.x, player.y, '#ffcc00', ctx);
+            drawPlayer(x, y, ctx);
+            drawBackWalls(levelWalls);
             
             var levelObject = levels[currentLevel].map;
             for (var y = 0; y < levelObject.length; y++) {
                 for (var x = 0; x < levelObject[y].length; x++) {
-                    if (levelObject[y][x] != 0) {
-                        drawSquare(x, y, COLOURS[levelObject[y][x]-1], ctx);
+                    if (levelObject[y][x] > 1) {
+                        tileDraw[levelObject[y][x]](x, y, ctx);
                     }
                 }
             }
+            
+            drawWalls(levelWalls);
             
             for (var b = 0; b < bombs.length; b++) {
                 var bomb = bombs[b];
@@ -584,7 +698,7 @@
             
             for (var r = 0; r < rubble.length; r++) {
                 var _rubble = rubble[r];
-                ctx.fillStyle = "#ffcc00";
+                ctx.fillStyle = COLOUR.BREAKABLE;
                 ctx.save();
                 ctx.translate(_rubble.x, _rubble.y);
                 ctx.rotate(-_rubble.rotation);
