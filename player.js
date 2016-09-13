@@ -5,6 +5,7 @@ var player = {
     dy:                     0,
     levelScore:             0,
     score:                  0,
+    highScore:              0,
     movesSinceStationary:   0,
     stop: function() { 
         this.dx = 0;

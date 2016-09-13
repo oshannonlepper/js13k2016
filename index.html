@@ -54,7 +54,7 @@
         var getLevelHeight = function() { return levels[currentLevel].map.length; };
         
         var resetLevelTo = {};
-        var levels = [level_6, level_7, level_1, level_5, level_2, level_3, level_4];
+        var levels = [level_6, level_7, level_1, level_5, level_2, level_3, level_8, level_4, level_9, level_10, level_11];
         var currentLevel = -1;
         var currentMessage = "";
         var levelWalls = [];
@@ -296,6 +296,11 @@
                 var nextLevel = currentLevel+1;
                 if (nextLevel >= levels.length) {
                     nextLevel = 0;
+                    if (player.levelScore+player.score > player.highScore) {
+                        player.highScore = player.levelScore+player.score;
+                    }
+                    player.score = 0;
+                    player.levelScore = 0;
                 }
                 initLevel(nextLevel);
             }
@@ -536,6 +541,7 @@
             ctx.fillStyle = "#ffffff";
             ctx.font = "30px Arial";
             ctx.fillText("Score : "+(player.score+player.levelScore), 30, 50);
+            ctx.fillText("Best : "+player.highScore, 30, 80);
             ctx.font = "18px Arial";
             ctx.fillText(currentMessage, 30, 580);
         }
@@ -560,10 +566,10 @@
                     handled = true;
                     break;
                 case KEY.SPACE:
-                    if (currentLevel > 0) {
+                    if (levels[currentLevel] != level_6) {
                         placeBomb();
                     }
-                    if (currentLevel == 1) {
+                    if (levels[currentLevel] == level_7) {
                         updateMessage("Bombs count down with each move you make.");
                     }
                     handled = true;
